@@ -1,0 +1,296 @@
+import time
+import random
+
+
+def wait(seconds):
+    time.sleep(seconds)
+
+
+# Game Class
+class Game:
+    def __init__(self):
+        self.__game_started = False
+        self.current_room = None
+        self.player = None
+        self.running = True
+        self.traveler_interacted = False  # Track if player has already interacted with the traveler
+
+    def run(self):
+        # Intro with pauses
+        print("Welcome to 'The Forgotten Kingdom'!")
+        wait(1)
+        print("You are about to embark on a dangerous quest filled with mystery, combat, and ancient secrets.")
+        wait(1)
+        print("Your choices will shape the world around you, leading you to glory or doom...")
+        wait(1)
+        print("Choose wisely, and prepare for what lies ahead!")
+        wait(1)
+
+        player_name = input("Enter your character's name: ")
+        self.player = Player(player_name, None)  # Player initialization
+        wait(2)
+        print(f"Ah, {self.player.name}, a name that will be remembered.")
+        wait(1)
+
+        self.display_instructions()
+        self.choose_starting_location()
+
+    def display_instructions(self):
+        """Display instructions for playing the game."""
+        print("\n- - Game Instructions - -")
+        print(f"{self.player.name}, here are your instructions for the game:\n")
+        print("To interact with the game, use the following commands:")
+        print("1. 'move north', 'move south', 'move east', or 'move west' to navigate between rooms.")
+        print("2. 'inventory' to view your inventory.")
+        print("3. 'use' followed by the item name to use an item (e.g., 'use sword').")
+        print("4. 'pick' followed by the item name to pick up an item (e.g., 'pick sword').")
+        print("5. 'attack' followed by enemy name to attack enemies.")
+        print("6. 'quit' to exit the game.")
+        print("\nType your commands at the prompt '>' when it appears.")
+        wait(2)
+
+    def choose_starting_location(self):
+        choice = input("Press '1' for the 'Dark Forest' or '2' for 'Castle of Shadows': ")
+
+        if choice == '1':
+            dark_forest = Room("Dark Forest", "A dangerous forest filled with towering trees and mysterious shadows.")
+            self.current_room = dark_forest
+            self.player.current_room = dark_forest
+            print(f"Your adventure begins in the {self.current_room.name}...\n")
+        elif choice == '2':
+            castle_of_shadows = Room("Castle of Shadows", "A grand, eerie castle long abandoned "
+                                                          "and filled with dark secrets.")
+            self.current_room = castle_of_shadows
+            self.player.current_room = castle_of_shadows
+            print(f"Your adventure begins in the {self.current_room.name}...\n")
+        else:
+            print("Invalid choice. Starting in 'Dark Forest' by default.")
+            dark_forest = Room("Dark Forest", "A dangerous forest filled with towering trees and mysterious shadows.")
+            self.current_room = dark_forest
+            self.player.current_room = dark_forest
+
+        # Add items to the starting room
+        sword = Item("Sword", "A sharp steel sword that glows faintly.")
+        health_potion = Item("Health Potion", "A small potion that restores health.")
+        self.current_room.add_item(sword)
+        self.current_room.add_item(health_potion)
+
+        # Set exits for the dark forest room
+        dark_forest.set_exit("north", Room("Castle of Shadows", "An eerie castle filled with dark secrets."))
+        dark_forest.set_exit("east", Room("Misty River", "A foggy river with an unknown depth."))
+        dark_forest.set_exit("south", Room("Ancient Ruins", "The ruins of a once great civilization, now in decay."))
+
+        self.main_menu()
+
+    def main_menu(self):
+        print("\n - - Main Menu - - \n")
+        if not self.__game_started:
+            player_input = input("Press 'q' to quit or 's' to start: ").lower()
+            if player_input == "q":
+                self.running = False
+                print("Goodbye, adventurer!")
+            elif player_input == "s":
+                self.__game_started = True
+                print(f"Starting your adventure in the {self.current_room.name}.")
+                self.start_adventure()
+
+    def start_adventure(self):
+        print(f"\nYou find yourself in the {self.current_room.name}, a place of danger and mystery.")
+        wait(1)
+        print("Explore carefully, and remember that each choice could be your last.")
+        self.update()
+
+    def update(self):
+        while self.running:
+            player_input = input("\nPress 'q' to quit to menu, 'i' to interact, 'e' to examine, 'm' to move, "
+                                 "or 'u' to use an item: ").lower()
+
+            if player_input == "q":
+                self.main_menu()
+            elif player_input == "i":
+                self.interact_with_characters()
+            elif player_input == "e":
+                self.examine_room()
+            elif player_input == "m":
+                self.move_to_room()
+            elif player_input == "u":
+                self.use_item()
+            elif player_input.startswith("pick"):
+                item_name = player_input.split(' ', 1)[1] if len(player_input.split(' ', 1)) > 1 else ""
+                self.player.pick_up_items(item_name)
+            else:
+                print("Invalid choice. Try again.")
+
+    def interact_with_characters(self):
+        if not self.traveler_interacted:
+            print(f"{self.player.name}, you hear a rustling in the bushes...")
+            wait(1)
+            print("A figure steps forward. It's a traveler!")
+            traveler_choice = input("Do you ask for help (yes/no)? ").lower()
+            if traveler_choice == "yes":
+                print("The traveler gives you a map of the area and some useful advice!")
+                map_item = Item("Map", "A map that reveals hidden paths in the forest.")
+                self.player.inventory.append(map_item)
+                self.traveler_interacted = True
+                print("Traveler: 'Beware of the goblin to the north, it guards the crown.'")
+                print("You received a Map!")
+            elif traveler_choice == "no":
+                print("The traveler looks disappointed and disappears into the shadows...")
+                self.traveler_interacted = True  # Traveler won't appear again after this
+        else:
+            print("You call out, but the traveler is gone. Maybe you should have asked for help earlier.")
+
+    def examine_room(self):
+        print(f"\nYou carefully examine your surroundings in the {self.current_room.name}:")
+        if not self.current_room.has_explored:
+            print("You discover some fresh clues... maybe something valuable is hidden here.")
+            self.current_room.has_explored = True
+        else:
+            if self.current_room.name == "Dark Forest":
+                print("You notice strange symbols carved into the trees, glowing faintly.")
+            elif self.current_room.name == "Castle of Shadows":
+                print("The shadows flicker in the castle, and you feel something watching you.")
+        self.current_room.describe()
+
+    def move_to_room(self):
+        direction = input("Which direction do you want to move? (north, south, east, west): ").lower()
+        if direction in self.current_room.exits:
+            self.current_room = self.current_room.exits[direction]
+            self.player.current_room = self.current_room
+            print(f"You move {direction} to {self.current_room.name}.")
+            self.current_room.describe()
+        else:
+            print(f"You can't go that way! You can try: {', '.join(self.current_room.exits.keys())}")
+
+    def use_item(self):
+        if self.player.inventory:
+            item_name = input("Which item do you want to use? ").lower()
+            self.player.use_item(item_name)
+        else:
+            print("You have no items in your inventory.")
+
+
+# Room Class
+class Room:
+    def __init__(self, name, description):
+        self.name = name
+        self.description = description
+        self.exits = {}  # Directions that lead to other rooms
+        self.items = []  # Items present in the room
+        self.enemies = []  # Enemies present in the room
+        self.has_explored = False
+
+    def set_exit(self, direction, room):
+        """Set exits to other rooms."""
+        self.exits[direction] = room
+
+    def add_item(self, item):
+        """Add an item to the room."""
+        self.items.append(item)
+
+    def add_enemy(self, enemy):
+        """Add enemy to the room."""
+        self.enemies.append(enemy)
+
+    def describe(self):
+        """Describe the room's current state."""
+        print(f"\nYou are in {self.name}.")
+        print(self.description)
+        if self.items:
+            print(f"Items in this room: {[item.name for item in self.items]}")
+        if self.enemies:
+            print(f"Enemies present: {[enemy.name for enemy in self.enemies]}")
+        print(f"Exits: {', '.join(self.exits.keys())}")
+
+
+# Item Class
+class Item:
+    def __init__(self, name, description):
+        self.name = name
+        self.description = description
+
+
+# Player Class
+class Player:
+    def __init__(self, name, starting_room):
+        self.name = name
+        self.current_room = starting_room
+        self.inventory = []
+        self.health = 100
+        self.max_health = 100
+
+    def use_item(self, item_name):
+        """Use an item from the inventory."""
+        for item in self.inventory:
+            if item.name.lower() == item_name:
+                if item.name == "Health Potion":
+                    self.health = min(self.max_health, self.health + 20)
+                    print(f"You used a Health Potion. Your health is now {self.health}.")
+                    self.inventory.remove(item)
+                elif item.name == "Sword":
+                    print("You wield the Sword, ready to face any dangers.")
+                elif item.name == "Map":
+                    print("The map reveals a hidden path to the north!")
+                return
+        print(f"You don't have an item called '{item_name}'.")
+
+    def show_inventory(self):
+        """Display the player's inventory."""
+        if self.inventory:
+            print(f"\nInventory: {[item.name for item in self.inventory]}")
+        else:
+            print("\nYour inventory is empty.")
+
+    def pick_up_items(self, item_name):
+        """Pick up an item if it's in the room."""
+        for item in self.current_room.items:
+            if item.name.lower() == item_name.lower():
+                self.inventory.append(item)
+                self.current_room.items.remove(item)
+                print(f"You picked up the {item.name}.")
+                return
+        print(f"There is no such item called '{item_name}' here.")
+
+    def attack(self, enemy_name):
+        """Attack an enemy in the room."""
+        for enemy in self.current_room.enemies:
+            if enemy.name.lower() == enemy_name.lower():
+                attack_damage = random.randint(5, 15)
+                print(f"You attacked {enemy.name}, dealing {attack_damage} damage!")
+                enemy.health -= attack_damage
+
+                if enemy.health <= 0:
+                    print(f"{enemy.name} has been defeated!")
+                    self.current_room.enemies.remove(enemy)
+                else:
+                    retaliation_damage = random.randint(3, 10)
+                    print(f"{enemy.name} retaliates! You take {retaliation_damage} damage.")
+                    self.take_damage(retaliation_damage)
+                return
+        print(f"There is no such enemy called '{enemy_name}' here.")
+
+    def take_damage(self, damage):
+        """Take damage and check for game over."""
+        self.health -= damage
+        print(f"You have {self.health} health remaining.")
+        if self.health <= 0:
+            print("You have died! Game Over.")
+            exit()
+
+
+# Enemy Class
+class Enemy:
+    def __init__(self, name, health, damage):
+        self.name = name
+        self.health = health
+        self.damage = damage
+
+
+# Main game loop
+def main():
+    game = Game()
+    game.run()
+
+
+if __name__ == "__main__":
+    main()
